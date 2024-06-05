@@ -30,23 +30,29 @@ else:
 
     side_length_km = 25
 
+
+    def normalize_longitude(start_longitude, normalize_longitude):
+        index = (start_longitude % 360) + 1
+        if normalize_longitude < 0:
+            return normalize_longitude + (360 * 1)
+        return normalize_longitude
+
+
     # =====================================================================================
     #               Найти ошибку почему эта функция возвращает отрицательные значения
     # =====================================================================================
     def generate_square(longitude, latitude, side_length):
-
+        # longitude = normalize_longitude(longitude)
         top_right_point = geodesic(kilometers=side_length).destination((latitude, longitude), 90)
-
         bottom_right_point = geodesic(kilometers=side_length).destination(
             (top_right_point.latitude, top_right_point.longitude), 180)
-
         bottom_left_point = geodesic(kilometers=side_length).destination((latitude, longitude), 180)
 
         return [
             [latitude, longitude],
-            [abs(top_right_point.latitude), abs(top_right_point.longitude)],
-            [abs(bottom_right_point.latitude), abs(bottom_right_point.longitude)],
-            [abs(bottom_left_point.latitude), abs(bottom_left_point.longitude)]
+            [top_right_point.latitude, normalize_longitude(longitude, top_right_point.longitude)],
+            [bottom_right_point.latitude, normalize_longitude(longitude, bottom_right_point.longitude)],
+            [bottom_left_point.latitude, normalize_longitude(longitude, bottom_left_point.longitude)]
         ]
 
         # bottom_left = list(geodesic(kilometers=side_length).destination((latitude, longitude), 225))[:2]
@@ -91,44 +97,44 @@ else:
 
     print(df)
 
-print(df.iloc[32772]["Polygon"])
-print(df.iloc[32772])
+print(df.iloc[26078]["Polygon"])
+print(df.iloc[26078])
 
-# m = folium.Map(location=[70.0, -30.0], zoom_start=2)
-#
-#
-# def get_color(index):
-#     if index <= 0:
-#         return "red"
-#     elif 22 > index >= 21:
-#         return "#42AAFF"
-#     elif 21 > index >= 15:
-#         return "#0000FF"
-#     else:
-#         return "#000096"
-#
-#
-# def add_ice_area(map_object, polygon_info, get_ice_index_from, index):
-#     folium.Polygon(
-#         locations=ast.literal_eval(polygon_info["Polygon"]),
-#         color=get_color(polygon_info[get_ice_index_from]),
-#         fill=True,
-#         fill_color=get_color(polygon_info[get_ice_index_from]),
-#         fill_opacity=0.5,
-#         tooltip=str(index)
-#     ).add_to(map_object)
-#
-#
-# current_cluster = MarkerCluster().add_to(m)
-#
-# for index, polygon_data in df.iterrows():
-#     # Каждые 100 полигонов создаем новый кластер
-#     if index % 100 == 0:
-#         current_cluster = MarkerCluster().add_to(m)
-#
-#     add_ice_area(current_cluster, polygon_data, "03-Mar-2020", index)
-#
-#     # if index >= 30000:
-#     #     break
-#
-# m.save('ice_map.html')
+m = folium.Map(location=[70.0, -30.0], zoom_start=2)
+
+
+def get_color(index):
+    if index <= 0:
+        return "red"
+    elif 22 > index >= 21:
+        return "#42AAFF"
+    elif 21 > index >= 15:
+        return "#0000FF"
+    else:
+        return "#000096"
+
+
+def add_ice_area(map_object, polygon_info, get_ice_index_from, index):
+    folium.Polygon(
+        locations=ast.literal_eval(polygon_info["Polygon"]),
+        color=get_color(polygon_info[get_ice_index_from]),
+        fill=True,
+        fill_color=get_color(polygon_info[get_ice_index_from]),
+        fill_opacity=0.5,
+        tooltip=str(index)
+    ).add_to(map_object)
+
+
+current_cluster = MarkerCluster().add_to(m)
+
+for index, polygon_data in df.iterrows():
+    # Каждые 100 полигонов создаем новый кластер
+    if index % 100 == 0:
+        current_cluster = MarkerCluster().add_to(m)
+
+    add_ice_area(current_cluster, polygon_data, "03-Mar-2020", index)
+
+    # if index >= 30000:
+    #     break
+
+m.save('ice_map.html')
