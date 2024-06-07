@@ -6,6 +6,7 @@ from shapely.geometry import Polygon
 from geopy.distance import geodesic
 import pandas as pd
 import ast
+from search.mapmask import MapMask
 
 file_path = 'data/parse_data_with_polygon.xlsx'
 
@@ -31,30 +32,41 @@ else:
     side_length_km = 25
 
 
-    def normalize_longitude(start_longitude, normalize_longitude):
-        index = (start_longitude % 360) + 1
-        if normalize_longitude < 0:
-            return normalize_longitude + (360 * 1)
+    def normalize_longitude(normalize_longitude):
+        if normalize_longitude > 180:
+            return normalize_longitude - 360
         return normalize_longitude
 
 
     # =====================================================================================
     #               Найти ошибку почему эта функция возвращает отрицательные значения
     # =====================================================================================
-    def generate_square(longitude, latitude, side_length):
-        # longitude = normalize_longitude(longitude)
+    def generate_square(longitude, latitude, side_length, mapMask):
+        longitude = normalize_longitude(longitude)
         top_right_point = geodesic(kilometers=side_length).destination((latitude, longitude), 90)
         bottom_right_point = geodesic(kilometers=side_length).destination(
             (top_right_point.latitude, top_right_point.longitude), 180)
         bottom_left_point = geodesic(kilometers=side_length).destination((latitude, longitude), 180)
-
-        return [
-            [latitude, longitude],
-            [top_right_point.latitude, normalize_longitude(longitude, top_right_point.longitude)],
-            [bottom_right_point.latitude, normalize_longitude(longitude, bottom_right_point.longitude)],
-            [bottom_left_point.latitude, normalize_longitude(longitude, bottom_left_point.longitude)]
-        ]
-
+        points = None
+        if longitude > 0 > bottom_right_point.longitude:
+            # print(f"обезать {longitude}")
+            points = [
+                [latitude, longitude],
+                [top_right_point.latitude, 180.],
+                [bottom_right_point.latitude, 180],
+                [bottom_left_point.latitude, bottom_left_point.longitude]
+            ]
+        else:
+            points = [
+                [latitude, longitude],
+                [top_right_point.latitude, top_right_point.longitude],
+                [bottom_right_point.latitude, bottom_right_point.longitude],
+                [bottom_left_point.latitude, bottom_left_point.longitude]
+            ]
+        for point in points:
+            if not mapMask.is_aqua(point[0], point[1]):
+                return points, "land"
+        return points, "aqua"
         # bottom_left = list(geodesic(kilometers=side_length).destination((latitude, longitude), 225))[:2]
         # bottom_right = list(geodesic(kilometers=side_length).destination((latitude, longitude), 315))[:2]
         # top_right = list(geodesic(kilometers=side_length).destination((latitude, longitude), 45))[:2]
@@ -64,7 +76,7 @@ else:
         #
         # return square_polygon
 
-
+    map = MapMask()
     for i in range(len(lon_df)):
         started_lon = None
         for j in range(lon_df.shape[1]):
@@ -76,7 +88,7 @@ else:
                 started_lon = lon
             else:
                 lon = started_lon
-            square = generate_square(lon, lat, side_length_km)
+            square, tag = generate_square(lon, lat, side_length_km, map)
             started_lon = square[1][1]
             indices = [square, lon, lat]
 
@@ -84,7 +96,8 @@ else:
                 index = float(index_df.iloc[i, j])
                 indices.append(index if pd.notna(index) else None)
 
-            data.append(indices)
+            if tag == "aqua":
+                data.append(indices)
 
     columns = ['Polygon', 'Longitude', 'Latitude']
     for sheet in index_sheets.keys():
@@ -97,8 +110,8 @@ else:
 
     print(df)
 
-print(df.iloc[26078]["Polygon"])
-print(df.iloc[26078])
+print(df.iloc[0]["Polygon"])
+print(df.iloc[0])
 
 m = folium.Map(location=[70.0, -30.0], zoom_start=2)
 
@@ -125,7 +138,16 @@ def add_ice_area(map_object, polygon_info, get_ice_index_from, index):
     ).add_to(map_object)
 
 
-current_cluster = MarkerCluster().add_to(m)
+# current_cluster = MarkerCluster().add_to(m)
+#
+# folium.Polygon(
+#     locations=ast.literal_eval(polygon_info["Polygon"]),
+#     color=get_color(-20),
+#     fill=True,
+#     fill_color=get_color(-20),
+#     fill_opacity=0.5,
+#     # tooltip=str(index)
+# ).add_to(current_cluster)
 
 for index, polygon_data in df.iterrows():
     # Каждые 100 полигонов создаем новый кластер
@@ -133,7 +155,7 @@ for index, polygon_data in df.iterrows():
         current_cluster = MarkerCluster().add_to(m)
 
     add_ice_area(current_cluster, polygon_data, "03-Mar-2020", index)
-
+    break
     # if index >= 30000:
     #     break
 
