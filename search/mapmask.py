@@ -7,14 +7,11 @@ from mpl_toolkits.basemap import Basemap
 
 class MapMask:
 
-    def __init__(self):
+    def __init__(self, image_path = r'resultMap\map_image.png'):
         self.map = Basemap(projection='mill', llcrnrlat=-90, urcrnrlat=90, llcrnrlon=-180, urcrnrlon=180)
-        self.image = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../resultMap/map_image.png'))
-        # self.image = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../resultMap/black-map-result.png'))
-        self.map_height = 3850
-        self.map_width = 5250
-        # self.map_height = 2048
-        # self.map_width = 2048
+        self.image = Image.open(image_path)
+        self.map_width, self.map_height = self.image.size
+
 
     def decoder(self,lat, lon):
         x, y = self.map(lon, lat)

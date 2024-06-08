@@ -12,6 +12,7 @@ import ast
 from search.mapmask import MapMask
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 
 # Загрузка изображения карты
 image_path = r'resultMap\map_image.png'
@@ -26,9 +27,13 @@ cmap = plt.cm.get_cmap('viridis', len(df['03-Mar-2020'].unique()))
 
 for i, value in enumerate(df['03-Mar-2020'].unique()):
     rgba = cmap(i)  # Получаем RGBA значение цвета
+    RGBA_1 = (int(rgba[0]*255), int(rgba[1]*255), int(rgba[2]*255), int(rgba[3]*255))
     hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgba[0]*255), int(rgba[1]*255), int(rgba[2]*255))
-    color_dict[hex_color] = value
+    color_dict[RGBA_1] = value
     color_reverse[value] = hex_color
+
+with open('data\color_dict.pkl', 'wb') as f:
+    pickle.dump(color_dict, f)
 
 def draw_poly(row):
     coords_lat_lon = ast.literal_eval(row['Polygon'])
@@ -46,5 +51,8 @@ df.apply(lambda x: draw_poly(x), axis=1)
 ax.set_xlim(0, img_width)
 ax.set_ylim(0, img_height)
 plt.gca().invert_yaxis() 
+ax.axis('off')
+fig.set_size_inches(5250 / 900, 3850 / 900)
+plt.savefig('resultMap\map_ice.png', dpi=900, bbox_inches='tight', pad_inches=0 )
 plt.show()
 

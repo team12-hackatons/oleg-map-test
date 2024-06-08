@@ -17,7 +17,7 @@ if os.path.exists(file_path):
 
     print(df)
 else:
-    file_path_integr_velocity = 'data/IntegrVelocity.xlsx'
+    file_path_integr_velocity = 'data\IntegrVelocity.xlsx'
 
     sheets = pd.ExcelFile(file_path_integr_velocity).sheet_names
 
@@ -129,7 +129,7 @@ def get_color(index):
 
 def add_ice_area(map_object, polygon_info, get_ice_index_from, index):
     folium.Polygon(
-        locations=ast.literal_eval(polygon_info["Polygon"]),
+        locations=polygon_info["Polygon"],
         color=get_color(polygon_info[get_ice_index_from]),
         fill=True,
         fill_color=get_color(polygon_info[get_ice_index_from]),
