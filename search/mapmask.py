@@ -7,7 +7,7 @@ from mpl_toolkits.basemap import Basemap
 
 class MapMask:
 
-    def __init__(self, image_path = r'resultMap\map_image.png'):
+    def __init__(self, image_path = r'resultMap/map_ice.png'):
         self.map = Basemap(projection='mill', llcrnrlat=-90, urcrnrlat=90, llcrnrlon=-180, urcrnrlon=180)
         self.image = Image.open(image_path)
         self.map_width, self.map_height = self.image.size
@@ -18,6 +18,19 @@ class MapMask:
         x = int((x - self.map.xmin) / (self.map.xmax - self.map.xmin) * self.map_width)
         y = int((self.map.ymax - y) / (self.map.ymax - self.map.ymin) * self.map_height)
         return x,y
+
+    def get_ice_index(self, x, y):
+        pixel_color = self.image.getpixel((x, y))
+        if pixel_color == (255, 255, 255, 255) and pixel_color == (255, 0, 0, 255):
+            return 1000
+        elif pixel_color == (0, 0, 150, 255):
+            return 3
+        elif pixel_color == (0, 0, 255, 255):
+            return 2
+        elif pixel_color == (66, 170, 255, 255):
+            return 1
+        else:
+            return 0
 
     def is_aqua(self, lat, lon):
         # self.plot_point(lat, lon)
