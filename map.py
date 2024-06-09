@@ -63,9 +63,9 @@ else:
                 [bottom_right_point.latitude, bottom_right_point.longitude],
                 [bottom_left_point.latitude, bottom_left_point.longitude]
             ]
-        for point in points:
-            if not mapMask.is_aqua(point[0], point[1]):
-                return points, "land"
+        # for point in points:
+        #     if not mapMask.is_aqua(point[0], point[1]):
+        #         return points, "land"
         return points, "aqua"
         # bottom_left = list(geodesic(kilometers=side_length).destination((latitude, longitude), 225))[:2]
         # bottom_right = list(geodesic(kilometers=side_length).destination((latitude, longitude), 315))[:2]
@@ -155,7 +155,7 @@ for index, polygon_data in df.iterrows():
         current_cluster = MarkerCluster().add_to(m)
 
     add_ice_area(current_cluster, polygon_data, "03-Mar-2020", index)
-    break
+    # break
     # if index >= 30000:
     #     break
 
