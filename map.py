@@ -110,8 +110,8 @@ else:
 
     print(df)
 
-print(df.iloc[0]["Polygon"])
-print(df.iloc[0])
+print(df.iloc[23938]["Polygon"])
+print(df.iloc[23938])
 
 m = folium.Map(location=[70.0, -30.0], zoom_start=2)
 
@@ -129,7 +129,7 @@ def get_color(index):
 
 def add_ice_area(map_object, polygon_info, get_ice_index_from, index):
     folium.Polygon(
-        locations=polygon_info["Polygon"],
+        locations=ast.literal_eval(polygon_info["Polygon"]),
         color=get_color(polygon_info[get_ice_index_from]),
         fill=True,
         fill_color=get_color(polygon_info[get_ice_index_from]),
@@ -155,7 +155,7 @@ for index, polygon_data in df.iterrows():
         current_cluster = MarkerCluster().add_to(m)
 
     add_ice_area(current_cluster, polygon_data, "03-Mar-2020", index)
-    break
+    # break
     # if index >= 30000:
     #     break
 

@@ -43,5 +43,5 @@ def generate_points(point, distance_km, step_degrees, mapMask):
     return points
 
 map = MapMask('../resultMap/map_ice.png')
-res = generate_points((76.47577, 69.78516),25, 5, map)
+res = generate_points((76.47577, 69.78516),100, 5, map)
 print(res)
