@@ -18,6 +18,14 @@ class MapMask:
         y = int((self.map.ymax - y) / (self.map.ymax - self.map.ymin) * self.map_height)
         return x, y
 
+    def reverse_decoder(self, map_x, map_y):
+        x = map_x / self.map_width * (self.map.xmax - self.map.xmin) + self.map.xmin
+        y = self.map.ymax - map_y / self.map_height * (self.map.ymax - self.map.ymin)
+
+        lon, lat = self.map(x, y, inverse=True)
+
+        return lat, lon
+
     def get_ice_index(self, x, y):
         pixel_color = self.image.getpixel((x, y))
         if pixel_color == (255, 255, 255, 255) or pixel_color == (255, 0, 0, 255):
@@ -31,16 +39,14 @@ class MapMask:
         else:
             return 0
 
-    def is_aqua(self, lat, lon):
-        # self.plot_point(lat, lon)
-        x, y = self.decoder(lat, lon)
+    def is_aqua(self, x, y):
         pixel_color = self.image.getpixel((x, y))
-        if pixel_color == (255, 0, 0, 255):
-            return False
-        min_x = max(0, x - 5)
-        max_x = min(self.map_width - 1, x + 5)
-        min_y = max(0, y - 5)
-        max_y = min(self.map_height - 1, y + 5)
+        # if pixel_color == (255, 0, 0, 255):
+        #     return False
+        min_x = max(0, x - 1)
+        max_x = min(self.map_width - 1, x + 1)
+        min_y = max(0, y - 1)
+        max_y = min(self.map_height - 1, y + 1)
 
         for i in range(min_x, max_x + 1):
             for j in range(min_y, max_y + 1):

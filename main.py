@@ -29,7 +29,7 @@ def main(start_point, end_point, ship):
         if geodesic((end_point.latitude, end_point.longitude), (current_point.latitude, current_point.longitude)).kilometers <= 25:
             G.add_edge(current_point, end_point)
             break
-        new_steps = generate_points(current_point, 25, 30, mapMask, visited, end_point, tree)
+        new_steps = generate_points(current_point, 35, 30, mapMask, visited, end_point, tree)
         for step in new_steps:
             G.add_node(step)
             G.add_edge(current_point, step, weight=step.error)

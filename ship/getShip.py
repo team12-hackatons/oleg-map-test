@@ -2,13 +2,13 @@ import json
 import os
 
 
-def get_ship_by_name(name):
+def get_ship_by_name(name, directory=r'ship'):
     # try:
-        with open(os.path.abspath('ship/ships.json'), 'r', encoding='utf-8') as file:
+        with open(os.path.abspath(f'{directory}/ships.json'), 'r', encoding='utf-8') as file:
             ships = json.load(file)
-        with open(os.path.abspath('ship/ports1.json'), 'r', encoding='utf-8') as file:
+        with open(os.path.abspath(f'{directory}/ports1.json'), 'r', encoding='utf-8') as file:
             ports = json.load(file)
-        with open(os.path.abspath('ship/info.json'), 'r', encoding='utf-8') as file:
+        with open(os.path.abspath(f'{directory}/info.json'), 'r', encoding='utf-8') as file:
             info = json.load(file)
         res = None
         for ship in ships:
