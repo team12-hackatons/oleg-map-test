@@ -43,10 +43,10 @@ class MapMask:
         pixel_color = self.image.getpixel((x, y))
         # if pixel_color == (255, 0, 0, 255):
         #     return False
-        min_x = max(0, x - 1)
-        max_x = min(self.map_width - 1, x + 1)
-        min_y = max(0, y - 1)
-        max_y = min(self.map_height - 1, y + 1)
+        min_x = max(0, x - 5)
+        max_x = min(self.map_width - 1, x + 5)
+        min_y = max(0, y - 5)
+        max_y = min(self.map_height - 1, y + 5)
 
         for i in range(min_x, max_x + 1):
             for j in range(min_y, max_y + 1):

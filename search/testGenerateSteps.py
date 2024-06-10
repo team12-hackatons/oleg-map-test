@@ -105,16 +105,18 @@ def f_cost(g_cost, h_cost, weight=0.5):
 
 def generate_points(point, map_mask, visited):
     points = []
-    for dx in range(-1, 2):  # dx will take values -1, 0, 1
-        for dy in range(-1, 2):  # dy will take values -1, 0, 1
+    distance = 5
+    offsets = [-distance, 0, distance]
+    for dx in offsets:
+        for dy in offsets:
             if dx == 0 and dy == 0:  # Skip the original point
                 continue
+            # if abs(dx) == distance or abs(dy) == distance:
             x, y = point.x + dx, point.y + dy
             if map_mask.is_aqua(x, y):
                 new_point = NodeInfo.from_xy(x, y, 0)
                 new_point.set_time(calculate_time(point, new_point, map_mask))
                 if (x, y) not in visited or new_point.time_in_path < visited[(x, y)].time_in_path:
-                    visited[(x, y)] = new_point
                     points.append(new_point)
     return points
     # for angle in range(0, 360, step_degrees):

@@ -6,8 +6,9 @@ class NodeInfo:
     end_lon = None
     map_mask = None
 
-    def __init__(self, lat, lon, time_in_path):
-        x, y = self.map_mask.decoder(lat, lon)
+    def __init__(self, lat, lon, time_in_path, x=None, y=None):
+        if x is None and y is None:
+            x, y = self.map_mask.decoder(lat, lon)
         self.lat = lat
         self.lon = lon
         self.x = x
@@ -22,7 +23,7 @@ class NodeInfo:
     @classmethod
     def from_xy(cls, x, y, time_in_path):
         lat, lon = cls.map_mask.reverse_decoder(x, y)
-        return cls(lat, lon, time_in_path)
+        return cls(lat, lon, time_in_path, x, y)
 
     @classmethod
     def set_class(cls, lat, lon, map_mask):

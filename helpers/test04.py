@@ -28,8 +28,7 @@ def main(start_point, end_point, ship):
     i = 0
 
     while True:
-        if i == 3660:
-            print("fd")
+        # if i == 3660:
         if len(steps) == 0:
             print("пути нет")
             break
@@ -37,6 +36,9 @@ def main(start_point, end_point, ship):
         if current_point.distance_to_end <= 25:
             G.add_edge(current_point, end_point_node)
             break
+        if (current_point.x, current_point.y) in visited:
+            continue
+        visited[(current_point.x, current_point.y)] = current_point
         new_steps = generate_points(current_point, map_mask, visited)
         for step in new_steps:
             G.add_node(step)
@@ -63,9 +65,12 @@ def main(start_point, end_point, ship):
     folium.Marker(location=(start_point_node.lat, start_point_node.lon), popup='Start Point').add_to(m)
     folium.Marker(location=(start_point_node.end_lat, start_point_node.end_lon), popup='End Point').add_to(m)
     shortest_path_array = []
-    for x, y in visited:
-        edge = visited[(x, y)]
+    for edge in shortest_path:
+        # edge = visited[(x, y)]
         shortest_path_array.append((edge.lat, edge.lon))
+    # for x, y in visited:
+    #     edge = visited[(x, y)]
+    #     shortest_path_array.append((edge.lat, edge.lon))
     # Создаем линию, соединяющую отсортированные точки
     line = folium.PolyLine(locations=shortest_path_array, color='blue', weight=5)
     line.add_to(m)
