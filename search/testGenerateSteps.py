@@ -6,6 +6,7 @@ from pointFullInfo import PointFullInfo
 from search.mapmask import MapMask
 from helpers.nodeInfo import NodeInfo
 
+
 def bresenham_line(point1, point2):
     x1, y1 = point1
     x2, y2 = point2
@@ -33,64 +34,49 @@ def bresenham_line(point1, point2):
     return pixels
 
 
-def add_point(rtree_idx, points_data, point):
-    """
-    Добавляет точку в R-дерево с фиксированным радиусом 1 км.
-
-    :param rtree_idx: rtree index, созданный из points_data
-    :param points_data: список данных о точках
-    :param point: объект PointFullInfo
-    """
-    radius = 10.0  # Радиус в километрах
-    lat, lon = point.latitude, point.longitude
-    lat_change = radius / 111.0  # 1 градус широты ~ 111 км
-    lon_change = radius / (111.0 * abs(cos(radians(lat))))
-    rtree_idx.insert(len(points_data), (lon - lon_change, lat - lat_change, lon + lon_change, lat + lat_change))
-    # points_data.append(point)
-
-
-def remove_point(rtree_idx, points_data, index_to_remove):
-    point = points_data[index_to_remove]
-    radius = 10.0
-    lat, lon = point.latitude, point.longitude
-    lat_change = radius / 111.0
-    lon_change = radius / (111.0 * abs(cos(radians(lat))))
-    rtree_idx.delete(index_to_remove, (lon - lon_change, lat - lat_change, lon + lon_change, lat + lat_change))
-    points_data.pop(index_to_remove)
-
-
-def is_point_within_any_radius(point, radius_data, rtree_idx):
-    lat, lon = point.latitude, point.longitude
-
-    possible_ids = list(rtree_idx.intersection((lon, lat, lon, lat)))
-    for i in possible_ids:
-        center, radius = (radius_data[i].latitude, radius_data[i].longitude), 1
-        if geodesic(center, (lat, lon)).kilometers <= radius:
-            # if point.current_time < radius_data[i].current_time:
-            #     remove_point(rtree_idx, radius_data, i)
-            #     # radius_data.pop()
-            #     return False
-            return True
-    return False
+def calculate_time_by_lat_lon(lat1, lon1, lat2, lon2, mapMask):
+    x1, y1 = mapMask.decoder(lat1, lon1)
+    x2, y2 = mapMask.decoder(lat2, lon2)
+    points = bresenham_line((x1, y1), (x2, y2))
+    kilometers = geodesic((lat1, lon1), (lat2, lon2)).kilometers
+    km = kilometers / len(points)
+    ship_speed = 22
+    speed_kmh = ship_speed * 1.852
+    time = 0
+    for x, y in points:
+        if not mapMask.is_aqua(x, y):
+            return -1
+        index = mapMask.get_ice_index(x, y)
+        if index == 1000:
+            return -1
+        if index == 3:
+            time += kilometers / (14 * 1.852) * 3600
+        elif index == 2:
+            time += kilometers / (19 * 1.852) * 3600
+        elif index == 1:
+            time += kilometers / speed_kmh * 3600
+        else:
+            time += kilometers / speed_kmh * index
+    return time
 
 
 def calculate_time(start_point, end_point, map_mask):
     kilometers = geodesic((start_point.lat, start_point.lon), (end_point.lat, end_point.lon)).kilometers
     ship_speed = 22
     speed_kmh = ship_speed * 1.852
-    time_seconds = start_point.time_in_path
     index = map_mask.get_ice_index(end_point.x, end_point.y)
-    # if index == 1000:
-    #     return -1
+    time = 0
+    if index == 1000:
+        return -1
     if index == 3:
-        return kilometers / (14 * 1.852) * 3600
+        time = kilometers / (14 * 1.852) * 3600
     elif index == 2:
-        return kilometers / (19 * 1.852) * 3600
+        time = kilometers / (19 * 1.852) * 3600
     elif index <= 1:
-        return kilometers / speed_kmh * 3600
-
-
-
+        time = kilometers / speed_kmh * 3600
+    end_point.current_time += time
+    end_point.map_mask.change_ice_map(end_point.current_time)
+    return time
 def get_ice_index(lat, lon, previous_index, mapMask):
     x1, y1 = mapMask.decoder(lat, lon)
     index = mapMask.get_ice_index(x1, y1)
@@ -103,9 +89,30 @@ def f_cost(g_cost, h_cost, weight=0.5):
     return weight * g_cost + (1 - weight) * h_cost
 
 
+def optimize(path, map_mask):
+    i = 1
+    while i < len(path) - 1:
+        current_point = path[i]
+
+        next_point = path[i + 1]
+
+        prev_point = path[i - 1]
+
+        current_time = current_point.time_in_path + next_point.time_in_path + prev_point.time_in_path
+
+        direct_time = calculate_time_by_lat_lon(prev_point.lat, prev_point.lon, next_point.lat, next_point.lon,
+                                                map_mask)
+
+        if direct_time < current_time and direct_time != -1:
+            next_point.set_time(direct_time)
+            path.pop(i)
+
+        else:
+            i += 1
+
 def generate_points(point, map_mask, visited):
     points = []
-    distance = 5
+    distance = 1
     offsets = [-distance, 0, distance]
     for dx in offsets:
         for dy in offsets:
@@ -114,41 +121,10 @@ def generate_points(point, map_mask, visited):
             # if abs(dx) == distance or abs(dy) == distance:
             x, y = point.x + dx, point.y + dy
             if map_mask.is_aqua(x, y):
-                new_point = NodeInfo.from_xy(x, y, 0)
-                new_point.set_time(calculate_time(point, new_point, map_mask))
-                if (x, y) not in visited or new_point.time_in_path < visited[(x, y)].time_in_path:
-                    points.append(new_point)
+                new_point = NodeInfo.from_xy(x, y, 0, point.map_mask, point.current_time)
+                time = calculate_time(point, new_point, map_mask)
+                if time != -1:
+                    new_point.set_time(time)
+                    if (x, y) not in visited or new_point.time_in_path < visited[(x, y)].time_in_path:
+                        points.append(new_point)
     return points
-    # for angle in range(0, 360, step_degrees):
-    #     destination = geodesic(kilometers=distance_km).destination((point.latitude, point.longitude), angle)
-    #     if mapMask.is_aqua(destination.latitude, destination.longitude):
-    #         time = calculate_error(point.latitude, point.longitude, destination.latitude, destination.longitude,
-    #                                point.current_time, mapMask, distance_km)
-    #         if time != -1:
-    #             ice_index = get_ice_index(destination.latitude, destination.longitude, point.ice_index, mapMask)
-    #             dd = PointFullInfo(destination.latitude, destination.longitude, ice_index, time,
-    #                                error=geodesic((end_point.latitude, end_point.longitude),
-    #                                               (destination.latitude, destination.longitude)).kilometers)
-    #             test = is_point_within_any_radius(dd, visited, tree)
-    #             if not test:
-    #                 add_point(tree, visited, destination)
-    #                 visited.append(dd)
-    #                 points.append(dd)
-                # visited.pop()
-
-            # points.append((destination.latitude, destination.longitude))
-
-    # return points
-
-
-# lat1, lon1 = 69.05482, 73.46008
-# lat2, lon2 = 41.77131, 153.28125
-
-# some_thing = calculate_error(lat1, lon1, lat2, lon2, 0, MapMask('../resultMap/map_ice_03-Mar-2020.png'), 1000)
-# print(some_thing)
-
-
-# point1 = (2, 3)
-# point2 = (10, 8)
-# line_pixels = bresenham_line(point1, point2)
-# print(line_pixels)

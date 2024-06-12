@@ -18,7 +18,7 @@ import pickle
 image_path = 'resultMap/map_image.png'
 map_img = Image.open(image_path)
 df = pd.read_excel('data/parse_data_with_polygon.xlsx')
-map = MapMask()
+map = MapMask(image_path)
 img_width, img_height = map_img.size
 
 color_dict = {}
@@ -60,9 +60,8 @@ for date in df.columns[3:]:
     ax.set_ylim(0, img_height)
     plt.gca().invert_yaxis()
     ax.axis('off')
-    fig.set_size_inches(5250 / 900, 3850 / 900)
+    fig.set_size_inches(img_width+1208+317, img_height+886+265)
 
     # Сохранение изображения в отдельный файл для каждой недели
-    plt.savefig(f'resultMap/map_ice_{date}.png', dpi=900, bbox_inches='tight', pad_inches=0)
+    plt.savefig(f'resultMap/map_ice_{date}.png', dpi=1, bbox_inches='tight', pad_inches=0)
     plt.close()
-
