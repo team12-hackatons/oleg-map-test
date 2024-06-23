@@ -12,7 +12,7 @@ file_path = 'data/parse_data_with_polygon.xlsx'
 
 df = None
 
-if os.path.exists(file_path):
+if False:
     df = pd.read_excel(file_path)
 
     print(df)
@@ -41,7 +41,7 @@ else:
     # =====================================================================================
     #               Найти ошибку почему эта функция возвращает отрицательные значения
     # =====================================================================================
-    def generate_square(longitude, latitude, side_length, mapMask):
+    def generate_square(longitude, latitude, side_length):
         longitude = normalize_longitude(longitude)
         top_right_point = geodesic(kilometers=side_length).destination((latitude, longitude), 90)
         bottom_right_point = geodesic(kilometers=side_length).destination(
@@ -76,7 +76,7 @@ else:
         #
         # return square_polygon
 
-    map = MapMask()
+    # map = MapMask()
     for i in range(len(lon_df)):
         started_lon = None
         for j in range(lon_df.shape[1]):
@@ -88,7 +88,7 @@ else:
                 started_lon = lon
             else:
                 lon = started_lon
-            square, tag = generate_square(lon, lat, side_length_km, map)
+            square, tag = generate_square(lon, lat, side_length_km)
             started_lon = square[1][1]
             indices = [square, lon, lat]
 

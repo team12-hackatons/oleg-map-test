@@ -5,6 +5,7 @@ from geopy.distance import geodesic
 from pointFullInfo import PointFullInfo
 from search.mapmask import MapMask
 from helpers.nodeInfo import NodeInfo
+from helpers.visited_tree import VisitedRads
 
 
 def bresenham_line(point1, point2):
@@ -34,29 +35,30 @@ def bresenham_line(point1, point2):
     return pixels
 
 
-def calculate_time_by_lat_lon(lat1, lon1, lat2, lon2, mapMask):
+def calculate_time_by_lat_lon(lat1, lon1, lat2, lon2, ice_map, mapMask):
     x1, y1 = mapMask.decoder(lat1, lon1)
     x2, y2 = mapMask.decoder(lat2, lon2)
     points = bresenham_line((x1, y1), (x2, y2))
     kilometers = geodesic((lat1, lon1), (lat2, lon2)).kilometers
-    km = kilometers / len(points)
+    # km = kilometers / len(points)
     ship_speed = 22
     speed_kmh = ship_speed * 1.852
     time = 0
     for x, y in points:
         if not mapMask.is_aqua(x, y):
             return -1
-        index = mapMask.get_ice_index(x, y)
-        if index == 1000:
-            return -1
-        if index == 3:
-            time += kilometers / (14 * 1.852) * 3600
-        elif index == 2:
-            time += kilometers / (19 * 1.852) * 3600
-        elif index == 1:
-            time += kilometers / speed_kmh * 3600
-        else:
-            time += kilometers / speed_kmh * index
+    box, _ = ice_map.find_nearest_square((lat2, lon2))
+    index = box.index
+    if index == 1000:
+        return -1
+    if index == 3:
+        time += kilometers / (14 * 1.852) * 3600
+    elif index == 2:
+        time += kilometers / (19 * 1.852) * 3600
+    elif index == 1:
+        time += kilometers / speed_kmh * 3600
+    else:
+        time += kilometers / speed_kmh * 1
     return time
 
 
@@ -77,6 +79,8 @@ def calculate_time(start_point, end_point, map_mask):
     end_point.current_time += time
     end_point.map_mask.change_ice_map(end_point.current_time)
     return time
+
+
 def get_ice_index(lat, lon, previous_index, mapMask):
     x1, y1 = mapMask.decoder(lat, lon)
     index = mapMask.get_ice_index(x1, y1)
@@ -110,21 +114,47 @@ def optimize(path, map_mask):
         else:
             i += 1
 
-def generate_points(point, map_mask, visited):
+
+def generate_points(point, map_mask, visited: VisitedRads, ice_map, distance_km=5, step_degrees=30):
     points = []
-    distance = 1
-    offsets = [-distance, 0, distance]
-    for dx in offsets:
-        for dy in offsets:
-            if dx == 0 and dy == 0:  # Skip the original point
-                continue
-            # if abs(dx) == distance or abs(dy) == distance:
-            x, y = point.x + dx, point.y + dy
-            if map_mask.is_aqua(x, y):
-                new_point = NodeInfo.from_xy(x, y, 0, point.map_mask, point.current_time)
-                time = calculate_time(point, new_point, map_mask)
-                if time != -1:
-                    new_point.set_time(time)
-                    if (x, y) not in visited or new_point.time_in_path < visited[(x, y)].time_in_path:
-                        points.append(new_point)
+
+    for angle in range(0, 360, step_degrees):
+        destination = geodesic(kilometers=distance_km).destination((point.lat, point.lon), angle)
+        if map_mask.is_aqua(destination.latitude, destination.longitude):
+            time = calculate_time_by_lat_lon(point.lat, point.lon, destination.latitude, destination.longitude,
+                                             ice_map, map_mask)
+            if time != -1:
+                dd = NodeInfo(destination.latitude, destination.longitude, time, time+point.current_time)
+
+                test = visited.find_nearest_rad((dd.lat, dd.lon), time)
+                if not test:
+                    if test != False:
+                        if test.time > time:
+                            test.time = time
+                        else:
+                            continue
+                    visited.add_rads((dd.lat, dd.lon), time)
+                    points.append(dd)
+                # visited.pop()
+
+            # points.append((destination.latitude, destination.longitude))
+
     return points
+# def generate_points(point, map_mask, visited, ice_map):
+#     points = []
+#     distance = 1
+#     offsets = [-distance, 0, distance]
+#     for dx in offsets:
+#         for dy in offsets:
+#             if dx == 0 and dy == 0:  # Skip the original point
+#                 continue
+#             # if abs(dx) == distance or abs(dy) == distance:
+#             x, y = point.x + dx, point.y + dy
+#             if map_mask.is_aqua(x, y):
+#                 new_point = NodeInfo.from_xy(x, y, 0, point.map_mask, point.current_time)
+#                 time = calculate_time(point, new_point, map_mask)
+#                 if time != -1:
+#                     new_point.set_time(time)
+#                     if (x, y) not in visited or new_point.time_in_path < visited[(x, y)].time_in_path:
+#                         points.append(new_point)
+#     return points

@@ -19,7 +19,7 @@ def main(start_point, end_point, ship):
     G = nx.Graph()
     map_mask = MapMask('../resultMap/map_image.png')
     current_time = int(datetime.strptime(ship["startTime"], '%Y-%m-%d %H:%M:%S').timestamp())
-    map_mask.change_ice_map(current_time, r'/home/oleg/PycharmProjects/moscowHackTest/resultMap')
+    # map_mask.change_ice_map(current_time, r'/home/oleg/PycharmProjects/moscowHackTest/resultMap')
     NodeInfo.set_class(end_point[0], end_point[1], current_time)
     start_point_node = NodeInfo(start_point[0], start_point[1], 0., map_mask, current_time)
     end_point_node = NodeInfo(end_point[0], end_point[1], 0, map_mask, current_time)
